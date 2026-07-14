@@ -1,12 +1,11 @@
 package com.schneewittchen.rosandroid.widgets.touchgoal;
 
 import com.schneewittchen.rosandroid.model.entities.widgets.BaseEntity;
+import com.schneewittchen.rosandroid.model.repositories.rosRepo.message.Message;
 import com.schneewittchen.rosandroid.model.repositories.rosRepo.node.BaseData;
 import com.schneewittchen.rosandroid.ui.opengl.visualisation.XYOrthographicCamera;
 
-import org.ros.internal.message.Message;
 import org.ros.namespace.GraphName;
-import org.ros.node.topic.Publisher;
 import org.ros.rosjava_geometry.Quaternion;
 import org.ros.rosjava_geometry.Transform;
 import org.ros.rosjava_geometry.Vector3;
@@ -17,11 +16,13 @@ import geometry_msgs.PoseStamped;
 
 
 /**
- * TODO: Description
+ * Touch goal data which is converted into a geometry_msgs/msg/PoseStamped
+ * message.
  *
  * @author Nico Studt
- * @version 1.0.0
+ * @version 2.0.0
  * @created on 26.05.2021
+ * @updated on 12.07.2026 (ROS 2 migration)
  */
 public class TouchGoalData extends BaseData {
 
@@ -55,11 +56,9 @@ public class TouchGoalData extends BaseData {
     }
 
     @Override
-    public Message toRosMessage(Publisher<Message> publisher, BaseEntity widget) {
-        TouchGoalEntity entity = (TouchGoalEntity) widget;
-
+    public Message toRosMessage(BaseEntity widget) {
         // Create message
-        PoseStamped message = (PoseStamped) publisher.newMessage();
+        PoseStamped message = new PoseStamped();
         message.getHeader().setFrameId(frame.toString());
 
         Pose pose = message.getPose();

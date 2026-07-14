@@ -13,7 +13,7 @@ import com.schneewittchen.rosandroid.model.entities.widgets.BaseEntity;
 import com.schneewittchen.rosandroid.ui.views.widgets.WidgetView;
 import com.schneewittchen.rosandroid.utility.Utils;
 
-import javax.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 /**
  * TODO: Description

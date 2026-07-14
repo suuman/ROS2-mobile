@@ -11,6 +11,7 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.schneewittchen.rosandroid.R;
 import com.schneewittchen.rosandroid.model.entities.widgets.SubscriberWidgetEntity;
+import com.schneewittchen.rosandroid.model.repositories.rosRepo.message.MessageRegistry;
 import com.schneewittchen.rosandroid.model.repositories.rosRepo.message.Topic;
 import com.schneewittchen.rosandroid.ui.general.WidgetChangeListener;
 
@@ -126,7 +127,7 @@ public abstract class BaseDetailSubscriberVH<T extends SubscriberWidgetEntity> e
             }
 
             for (String topicType : getTopicTypes()) {
-                if (rosTopic.type.equals(topicType)) {
+                if (MessageRegistry.toRos2Type(rosTopic.type).equals(MessageRegistry.toRos2Type(topicType))) {
                     topicNameItemList.add(rosTopic.name);
                     break;
                 }

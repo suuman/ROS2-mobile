@@ -1,8 +1,23 @@
 # ROS-Mobile
 
-ROS-Mobile is an [Android](https://www.android.com/) application designed for dynamic control and visualization of mobile robotic system operated by the Robot Operating System ([ROS](http://wiki.ros.org/)). The application uses ROS nodes initializing publisher and subscriber with standard ROS messages. The overall code architecture pattern is Model View ViewModel ([MVVM]([https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93viewmodel](https://en.wikipedia.org/wiki/Model–view–viewmodel))), which stabilizes the application and makes it highly customizable. For a detailed overview of the functionality, we refer to our [wiki](https://github.com/ROS-Mobile/ROS-Mobile-Android/wiki).
+ROS-Mobile is an [Android](https://www.android.com/) application designed for dynamic control and visualization of mobile robotic system operated by the Robot Operating System 2 ([ROS 2](https://docs.ros.org/)). The application communicates with the ROS 2 system over the [rosbridge protocol](https://github.com/RobotWebTools/rosbridge_suite) (WebSocket + JSON) and initializes publishers and subscribers with standard ROS 2 messages. The overall code architecture pattern is Model View ViewModel ([MVVM]([https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93viewmodel](https://en.wikipedia.org/wiki/Model–view–viewmodel))), which stabilizes the application and makes it highly customizable. For a detailed overview of the functionality, we refer to our [wiki](https://github.com/ROS-Mobile/ROS-Mobile-Android/wiki).
 
-- Current stable Version: 2.0.0
+- Current stable Version: 3.0.0 (ROS 2 via rosbridge, Android 16 ready)
+
+## ROS 2 setup
+
+The app connects to a rosbridge server running on the robot / ROS 2 system.
+Install and launch it there before connecting:
+
+```
+sudo apt install ros-$ROS_DISTRO-rosbridge-suite
+ros2 launch rosbridge_server rosbridge_websocket_launch.xml
+```
+
+In the MASTER tab of the app enter the IP address of the ROS 2 system and the
+rosbridge port (default: 9090). The topic search in the widget details
+additionally uses the `rosapi` node, which is included in the launch file
+above.
 
 ## Cite
 

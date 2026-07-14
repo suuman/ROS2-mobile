@@ -8,6 +8,7 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.schneewittchen.rosandroid.R;
 import com.schneewittchen.rosandroid.model.entities.widgets.BaseEntity;
+import com.schneewittchen.rosandroid.model.repositories.rosRepo.message.MessageRegistry;
 import com.schneewittchen.rosandroid.model.repositories.rosRepo.message.Topic;
 import com.schneewittchen.rosandroid.viewmodel.DetailsViewModel;
 
@@ -124,7 +125,7 @@ class SubscriberViewHolder implements IBaseViewHolder {
             }
 
             for (String topicType : topicTypes) {
-                if (rosTopic.type.equals(topicType)) {
+                if (MessageRegistry.toRos2Type(rosTopic.type).equals(MessageRegistry.toRos2Type(topicType))) {
                     topicNameItemList.add(rosTopic.name);
                     break;
                 }

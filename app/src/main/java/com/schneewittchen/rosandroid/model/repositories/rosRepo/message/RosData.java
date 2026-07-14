@@ -1,15 +1,12 @@
 package com.schneewittchen.rosandroid.model.repositories.rosRepo.message;
 
-import org.ros.internal.message.Message;
-
 /**
- * TODO: Description
+ * Container for a received ROS message and its topic.
  *
  * @author Nico Studt
- * @version 1.0.0
+ * @version 2.0.0
  * @created on 21.09.20
- * @updated on
- * @modified by
+ * @updated on 12.07.2026 (ROS 2 migration)
  */
 public class RosData {
 

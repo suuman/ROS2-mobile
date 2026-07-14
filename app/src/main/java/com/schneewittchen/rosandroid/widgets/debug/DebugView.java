@@ -17,7 +17,7 @@ import androidx.core.view.GestureDetectorCompat;
 import com.schneewittchen.rosandroid.R;
 import com.schneewittchen.rosandroid.ui.views.widgets.SubscriberWidgetView;
 
-import org.ros.internal.message.Message;
+import com.schneewittchen.rosandroid.model.repositories.rosRepo.message.Message;
 
 import java.util.ArrayList;
 

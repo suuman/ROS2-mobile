@@ -30,7 +30,7 @@ import com.schneewittchen.rosandroid.ui.views.widgets.IPublisherView;
 import com.schneewittchen.rosandroid.ui.views.widgets.ISubscriberView;
 import com.schneewittchen.rosandroid.ui.views.widgets.LayerView;
 
-import org.ros.internal.message.Message;
+import com.schneewittchen.rosandroid.model.repositories.rosRepo.message.Message;
 
 import java.util.ArrayList;
 import java.util.Collections;

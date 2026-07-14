@@ -1,7 +1,8 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Base application theme. -->
-    <style name="AppTheme" parent="Theme.MaterialComponents.NoActionBar">
+    <!-- Base application theme. API-level specific variants (values-v35)
+         derive from this style, so theme changes only have to be made here. -->
+    <style name="Base.AppTheme" parent="Theme.MaterialComponents.NoActionBar">
         <!-- Customize your theme here. -->
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/black01dp</item>
@@ -19,6 +20,8 @@
            -->
 
     </style>
+
+    <style name="AppTheme" parent="Base.AppTheme" />
 
 
     <style name="GalaxyZooThemeToolbarDarkOverflow" parent="Theme.AppCompat.NoActionBar">

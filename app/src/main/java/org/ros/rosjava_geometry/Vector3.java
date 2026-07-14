@@ -1,0 +1,153 @@
+/*
+ * Copyright (C) 2011 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
+
+package org.ros.rosjava_geometry;
+
+/**
+ * A three dimensional vector. Ported from rosjava_geometry and adapted to the
+ * plain ROS 2 message classes used with the rosbridge protocol.
+ *
+ * @author damonkohler@google.com (Damon Kohler)
+ */
+public class Vector3 {
+
+    private static final Vector3 ZERO = new Vector3(0, 0, 0);
+    private static final Vector3 X_AXIS = new Vector3(1, 0, 0);
+    private static final Vector3 Y_AXIS = new Vector3(0, 1, 0);
+    private static final Vector3 Z_AXIS = new Vector3(0, 0, 1);
+
+    private final double x;
+    private final double y;
+    private final double z;
+
+    public Vector3(double x, double y, double z) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
+
+    public static Vector3 fromVector3Message(geometry_msgs.Vector3 message) {
+        return new Vector3(message.x, message.y, message.z);
+    }
+
+    public static Vector3 fromPointMessage(geometry_msgs.Point message) {
+        return new Vector3(message.x, message.y, message.z);
+    }
+
+    public static Vector3 zero() {
+        return ZERO;
+    }
+
+    public static Vector3 xAxis() {
+        return X_AXIS;
+    }
+
+    public static Vector3 yAxis() {
+        return Y_AXIS;
+    }
+
+    public static Vector3 zAxis() {
+        return Z_AXIS;
+    }
+
+    public Vector3 add(Vector3 other) {
+        return new Vector3(x + other.x, y + other.y, z + other.z);
+    }
+
+    public Vector3 subtract(Vector3 other) {
+        return new Vector3(x - other.x, y - other.y, z - other.z);
+    }
+
+    public Vector3 invert() {
+        return new Vector3(-x, -y, -z);
+    }
+
+    public double dotProduct(Vector3 other) {
+        return x * other.x + y * other.y + z * other.z;
+    }
+
+    public double getMagnitudeSquared() {
+        return x * x + y * y + z * z;
+    }
+
+    public double getMagnitude() {
+        return Math.sqrt(getMagnitudeSquared());
+    }
+
+    public Vector3 normalize() {
+        double magnitude = getMagnitude();
+        return new Vector3(x / magnitude, y / magnitude, z / magnitude);
+    }
+
+    public Vector3 scale(double factor) {
+        return new Vector3(x * factor, y * factor, z * factor);
+    }
+
+    public double getX() {
+        return x;
+    }
+
+    public double getY() {
+        return y;
+    }
+
+    public double getZ() {
+        return z;
+    }
+
+    public geometry_msgs.Vector3 toVector3Message(geometry_msgs.Vector3 result) {
+        result.x = x;
+        result.y = y;
+        result.z = z;
+        return result;
+    }
+
+    public geometry_msgs.Point toPointMessage(geometry_msgs.Point result) {
+        result.x = x;
+        result.y = y;
+        result.z = z;
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("Vector3<x: %.4f, y: %.4f, z: %.4f>", x, y, z);
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        long temp;
+        temp = Double.doubleToLongBits(x);
+        result = prime * result + (int) (temp ^ (temp >>> 32));
+        temp = Double.doubleToLongBits(y);
+        result = prime * result + (int) (temp ^ (temp >>> 32));
+        temp = Double.doubleToLongBits(z);
+        result = prime * result + (int) (temp ^ (temp >>> 32));
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        Vector3 other = (Vector3) obj;
+        return Double.doubleToLongBits(x) == Double.doubleToLongBits(other.x)
+                && Double.doubleToLongBits(y) == Double.doubleToLongBits(other.y)
+                && Double.doubleToLongBits(z) == Double.doubleToLongBits(other.z);
+    }
+}

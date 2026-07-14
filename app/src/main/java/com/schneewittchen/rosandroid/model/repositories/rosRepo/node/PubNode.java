@@ -2,26 +2,25 @@ package com.schneewittchen.rosandroid.model.repositories.rosRepo.node;
 
 import com.schneewittchen.rosandroid.model.entities.widgets.BaseEntity;
 import com.schneewittchen.rosandroid.model.entities.widgets.PublisherLayerEntity;
-
-import org.ros.internal.message.Message;
-import org.ros.node.ConnectedNode;
-import org.ros.node.topic.Publisher;
+import com.schneewittchen.rosandroid.model.repositories.rosRepo.connection.RosbridgeClient;
+import com.schneewittchen.rosandroid.model.repositories.rosRepo.message.Message;
+import com.schneewittchen.rosandroid.model.repositories.rosRepo.message.MessageGson;
+import com.schneewittchen.rosandroid.model.repositories.rosRepo.message.MessageRegistry;
 
 import java.util.Timer;
 import java.util.TimerTask;
 
 /**
- * ROS Node for publishing Messages on a specific topic.
+ * Node for publishing messages on a specific topic over the rosbridge
+ * connection (ROS 2).
  *
  * @author Nico Studt
- * @version 1.0.0
+ * @version 2.0.0
  * @created on 16.09.20
- * @updated on
- * @modified by
+ * @updated on 12.07.2026 (ROS 2 migration)
  */
 public class PubNode extends AbstractNode {
 
-    private Publisher<Message> publisher;
     private BaseData lastData;
     private Timer pubTimer;
     private long pubPeriod = 100L;
@@ -29,10 +28,25 @@ public class PubNode extends AbstractNode {
 
 
     @Override
-    public void onStart(ConnectedNode parentNode) {
-        publisher = parentNode.newPublisher(topic.name, topic.type);
+    public void onConnected(RosbridgeClient client) {
+        super.onConnected(client);
 
+        client.advertise(topic.name, MessageRegistry.toRos2Type(topic.type));
         this.createAndStartSchedule();
+    }
+
+    @Override
+    public void onDisconnected() {
+        if (pubTimer != null) {
+            pubTimer.cancel();
+            pubTimer = null;
+        }
+
+        if (client != null && client.isConnected()) {
+            client.unadvertise(topic.name);
+        }
+
+        super.onDisconnected();
     }
 
     /**
@@ -88,15 +102,19 @@ public class PubNode extends AbstractNode {
     }
 
     private void publish() {
-        if (publisher == null) {
+        if (client == null || !client.isConnected()) {
             return;
         }
         if (lastData == null) {
             return;
         }
 
-        Message message = lastData.toRosMessage(publisher, widget);
-        publisher.publish(message);
+        Message message = lastData.toRosMessage(widget);
+        if (message == null) {
+            return;
+        }
+
+        client.publish(topic.name, MessageGson.get().toJsonTree(message));
     }
 
     @Override

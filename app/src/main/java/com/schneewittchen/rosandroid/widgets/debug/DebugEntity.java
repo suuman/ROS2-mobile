@@ -3,17 +3,14 @@ package com.schneewittchen.rosandroid.widgets.debug;
 import com.schneewittchen.rosandroid.model.entities.widgets.SubscriberWidgetEntity;
 import com.schneewittchen.rosandroid.model.repositories.rosRepo.message.Topic;
 
-import org.ros.node.topic.Subscriber;
-
 
 /**
- * TODO: Description
+ * Debug widget entity. Subscribes to a topic of any message type.
  *
  * @author Nils Rottmann
- * @version 1.0.0
+ * @version 2.0.0
  * @created on 17.08.20
- * @updated on 17.09.20
- * @modified by Nils Rottmann
+ * @updated on 12.07.2026 (ROS 2 migration)
  */
 public class DebugEntity extends SubscriberWidgetEntity {
 
@@ -23,7 +20,7 @@ public class DebugEntity extends SubscriberWidgetEntity {
     public DebugEntity() {
         this.width = 4;
         this.height = 3;
-        this.topic = new Topic("MessageToDebug", Subscriber.TOPIC_MESSAGE_TYPE_WILDCARD);
+        this.topic = new Topic("MessageToDebug", Topic.WILDCARD_TYPE);
         this.numberMessages = 10;
     }
 }

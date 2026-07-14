@@ -1,19 +1,18 @@
 package com.schneewittchen.rosandroid.widgets.switchbutton;
 
 import com.schneewittchen.rosandroid.model.entities.widgets.BaseEntity;
+import com.schneewittchen.rosandroid.model.repositories.rosRepo.message.Message;
 import com.schneewittchen.rosandroid.model.repositories.rosRepo.node.BaseData;
-
-import org.ros.internal.message.Message;
-import org.ros.node.topic.Publisher;
 
 import std_msgs.Bool;
 
 /**
- * TODO: Description
+ * Switch button data which is converted into a std_msgs/msg/Bool message.
  *
  * @author Nico Studt
- * @version 1.0.0
+ * @version 2.0.0
  * @created on 10.05.2022
+ * @updated on 12.07.2026 (ROS 2 migration)
  */
 public class SwitchButtonData extends BaseData {
 
@@ -24,8 +23,8 @@ public class SwitchButtonData extends BaseData {
     }
 
     @Override
-    public Message toRosMessage(Publisher<Message> publisher, BaseEntity widget) {
-        std_msgs.Bool message = (Bool) publisher.newMessage();
+    public Message toRosMessage(BaseEntity widget) {
+        Bool message = new Bool();
         message.setData(pressed);
         return message;
     }

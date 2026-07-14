@@ -30,7 +30,7 @@ import com.schneewittchen.rosandroid.ui.views.widgets.WidgetView;
 import com.schneewittchen.rosandroid.utility.Constants;
 import com.schneewittchen.rosandroid.utility.Utils;
 
-import org.ros.internal.message.Message;
+import com.schneewittchen.rosandroid.model.repositories.rosRepo.message.Message;
 
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;

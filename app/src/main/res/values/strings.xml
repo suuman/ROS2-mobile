@@ -16,10 +16,9 @@
     <string name="connection_checklist_title">Have you checked before connecting: </string>
     <string-array name="connection_checklist">
         <item>Valid and active WIFI connection?</item>
-        <item>Correct IP and PORT of the ROS Master entered?</item>
-        <item>Is this device in the same network as the Master system?</item>
-        <item>Changed the environment variables of the Master system?</item>
-        <item>Master is running?</item>
+        <item>Correct IP and PORT of the rosbridge server entered? (default port: 9090)</item>
+        <item>Is this device in the same network as the ROS 2 system?</item>
+        <item>Is the rosbridge server running? (ros2 launch rosbridge_server rosbridge_websocket_launch.xml)</item>
         <item>Correct topic names subscribed / published?</item>
     </string-array>
 

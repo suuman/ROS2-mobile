@@ -21,7 +21,6 @@ import android.opengl.GLUtils;
 
 import com.google.common.base.Preconditions;
 
-import org.jboss.netty.buffer.ChannelBuffer;
 import org.ros.rosjava_geometry.Transform;
 
 import java.nio.FloatBuffer;
@@ -110,19 +109,20 @@ public class TextureBitmap implements OpenGlDrawable {
         update(origin, stride, resolution, fillColor);
     }
 
-    public void updateFromPixelBuffer(ChannelBuffer pixels, int stride, int height, float resolution,
-                                      Transform origin, int fillColor) {
-        Preconditions.checkNotNull(pixels);
+    public void updateFromPixelBuffer(int[] sourcePixels, int count, int stride, int height,
+                                      float resolution, Transform origin, int fillColor) {
+        Preconditions.checkNotNull(sourcePixels);
         Preconditions.checkNotNull(origin);
 
+        int read = 0;
         for (int y = 0, i = 0; y < HEIGHT; y++) {
             for (int x = 0; x < STRIDE; x++, i++) {
 
                 // If the pixel is within the bounds of the specified pixel array then
                 // we copy the specified value. Otherwise, we use the specified fill
                 // color.
-                if (x < stride && y < height && pixels.readable()) {
-                    this.pixels[i] = pixels.readInt();
+                if (x < stride && y < height && read < count) {
+                    this.pixels[i] = sourcePixels[read++];
                 } else {
                     this.pixels[i] = fillColor;
                 }

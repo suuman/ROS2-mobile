@@ -9,17 +9,17 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 
+import androidx.annotation.Nullable;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.schneewittchen.rosandroid.model.entities.widgets.BaseEntity;
+import com.schneewittchen.rosandroid.model.repositories.rosRepo.message.Message;
 import com.schneewittchen.rosandroid.ui.views.widgets.SubscriberWidgetView;
 
-import org.ros.internal.message.Message;
-import org.ros.internal.message.field.Field;
+import org.ros.message.Time;
 
 import java.util.ArrayList;
-
-import javax.annotation.Nullable;
-
-import std_msgs.Header;
 
 
 /**
@@ -104,46 +104,63 @@ public class RqtPlotView extends SubscriberWidgetView {
     public void onNewMessage(Message message) {
         super.onNewMessage(message);
 
-        // Try to extract value by traversing message path;
+        JsonObject json = message.getRawJson();
+        if (json == null || subPaths.isEmpty()) {
+            return;
+        }
+
+        // Try to extract value by traversing the raw JSON along the field path
         try {
-            Header header = message.toRawMessage().getMessage("header");
-
-            for (int i = 0; i < subPaths.size(); i++) {
-                String path = subPaths.get(i);
-
-                // Check if last subPath
-                if (i == subPaths.size() - 1) {
-                    Float value = null;
-
-                    // Find value and cast to float
-                    for (Field field : message.toRawMessage().getFields()) {
-                        if (field.getName().equals(path)) {
-                            value = ((Number) field.getValue()).floatValue();
-                            break;
-                        }
-                    }
-
-                    // Add value to data
-                    if (value != null) {
-                        data.add(value, header.getStamp());
-                        yAxis.setLimits(data.getMinValue(), data.getMaxValue());
-
-                    } else {
-                        Log.i(TAG, "Field couldnt be resolved. Unknown type.");
-                    }
-
-                } else {
-                    message = message.toRawMessage().getMessage(path);
-                }
+            Time stamp = extractStamp(json);
+            if (stamp == null) {
+                Log.i(TAG, "Message has no header time stamp.");
+                return;
             }
 
+            JsonElement current = json;
+            for (String path : subPaths) {
+                if (!current.isJsonObject() || !current.getAsJsonObject().has(path)) {
+                    Log.i(TAG, "Field couldnt be resolved: " + path);
+                    return;
+                }
+
+                current = current.getAsJsonObject().get(path);
+            }
+
+            float value = current.getAsFloat();
+            data.add(value, stamp);
+            yAxis.setLimits(data.getMinValue(), data.getMaxValue());
 
         } catch (Exception e) {
-            Log.e(TAG, e.getLocalizedMessage());
+            Log.e(TAG, "Failed to extract plot value: " + e.getLocalizedMessage());
             return;
         }
 
         this.invalidate();
+    }
+
+    /**
+     * Extract the header time stamp of a message. Supports the ROS 2
+     * (sec/nanosec) and ROS 1 (secs/nsecs) field naming.
+     */
+    private Time extractStamp(JsonObject json) {
+        if (!json.has("header")) {
+            return null;
+        }
+
+        JsonObject header = json.getAsJsonObject("header");
+        if (!header.has("stamp")) {
+            return null;
+        }
+
+        JsonObject stamp = header.getAsJsonObject("stamp");
+        if (stamp.has("sec")) {
+            return new Time(stamp.get("sec").getAsInt(), stamp.get("nanosec").getAsInt());
+        } else if (stamp.has("secs")) {
+            return new Time(stamp.get("secs").getAsInt(), stamp.get("nsecs").getAsInt());
+        }
+
+        return null;
     }
 
     @Override

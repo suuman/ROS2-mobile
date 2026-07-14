@@ -11,6 +11,12 @@ package com.schneewittchen.rosandroid.model.repositories.rosRepo.message;
 public class Topic {
 
     /**
+     * Wildcard type for subscribing to a topic of any message type.
+     * The type is then inferred by the rosbridge server.
+     */
+    public static final String WILDCARD_TYPE = "*";
+
+    /**
      * Topic name e.g. '/map'
      */
     public String name = "";

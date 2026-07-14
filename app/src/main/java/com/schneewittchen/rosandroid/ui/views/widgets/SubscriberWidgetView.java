@@ -3,7 +3,7 @@ package com.schneewittchen.rosandroid.ui.views.widgets;
 import android.content.Context;
 import android.util.AttributeSet;
 
-import org.ros.internal.message.Message;
+import com.schneewittchen.rosandroid.model.repositories.rosRepo.message.Message;
 
 
 /**

@@ -4,7 +4,7 @@ import android.content.Context;
 
 import com.schneewittchen.rosandroid.ui.opengl.visualisation.VisualizationView;
 
-import org.ros.internal.message.Message;
+import com.schneewittchen.rosandroid.model.repositories.rosRepo.message.Message;
 
 import javax.microedition.khronos.opengles.GL10;
 

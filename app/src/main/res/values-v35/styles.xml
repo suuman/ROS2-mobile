@@ -1,0 +1,10 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- On Android 15+ (API 35+) opt out of the enforced edge-to-edge layout
+         so that the original design is kept below the system bars. All other
+         theme attributes are inherited from Base.AppTheme. -->
+    <style name="AppTheme" parent="Base.AppTheme">
+        <item name="android:windowOptOutEdgeToEdgeEnforcement" tools:targetApi="35">true</item>
+    </style>
+
+</resources>

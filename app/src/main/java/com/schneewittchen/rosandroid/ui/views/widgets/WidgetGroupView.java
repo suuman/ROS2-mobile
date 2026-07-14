@@ -7,7 +7,7 @@ import androidx.annotation.Nullable;
 
 import com.schneewittchen.rosandroid.model.repositories.rosRepo.message.RosData;
 
-import org.ros.internal.message.Message;
+import com.schneewittchen.rosandroid.model.repositories.rosRepo.message.Message;
 
 
 /**

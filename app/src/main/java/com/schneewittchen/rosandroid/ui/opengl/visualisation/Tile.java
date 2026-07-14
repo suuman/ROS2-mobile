@@ -5,15 +5,15 @@ package com.schneewittchen.rosandroid.ui.opengl.visualisation;
  * we split the map into multiple tiles and draw one texture per tile.
  *
  * @author moesenle@google.com (Lorenz Moesenlechner)
- * @version 2.0
- * @updated on 08.03.21
+ * @version 3.0
+ * @updated on 12.07.2026 (ROS 2 migration, netty buffer replaced by int array)
  */
 
 import com.google.common.base.Preconditions;
 
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.ros.internal.message.MessageBuffers;
 import org.ros.rosjava_geometry.Transform;
+
+import java.util.Arrays;
 
 import javax.microedition.khronos.opengles.GL10;
 
@@ -27,8 +27,17 @@ public class Tile {
      */
     private static final int COLOR_TRANSPARENT = 0x00000000;
 
-    private final ChannelBuffer pixelBuffer = MessageBuffers.dynamicBuffer();
     private final TextureBitmap textureBitmap = new TextureBitmap();
+
+    /**
+     * Pixel color buffer of the tile.
+     */
+    private int[] pixelBuffer = new int[TextureBitmap.STRIDE * TextureBitmap.HEIGHT];
+
+    /**
+     * Number of valid pixels in {@link #pixelBuffer}.
+     */
+    private int pixelCount = 0;
 
     /**
      * Resolution of the {@link OccupancyGrid}.
@@ -72,13 +81,17 @@ public class Tile {
     }
 
     public void writeInt(int value) {
-        pixelBuffer.writeInt(value);
+        if (pixelCount == pixelBuffer.length) {
+            pixelBuffer = Arrays.copyOf(pixelBuffer, pixelBuffer.length * 2);
+        }
+        pixelBuffer[pixelCount++] = value;
     }
 
     public void update() {
         Preconditions.checkNotNull(origin);
-        textureBitmap.updateFromPixelBuffer(pixelBuffer, stride, height, resolution, origin, COLOR_TRANSPARENT);
-        pixelBuffer.clear();
+        textureBitmap.updateFromPixelBuffer(pixelBuffer, pixelCount, stride, height, resolution,
+                origin, COLOR_TRANSPARENT);
+        pixelCount = 0;
         ready = true;
     }
 

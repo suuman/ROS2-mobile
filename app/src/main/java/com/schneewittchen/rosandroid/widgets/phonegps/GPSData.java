@@ -1,23 +1,20 @@
 package com.schneewittchen.rosandroid.widgets.phonegps;
 
 import com.schneewittchen.rosandroid.model.entities.widgets.BaseEntity;
+import com.schneewittchen.rosandroid.model.repositories.rosRepo.message.Message;
 import com.schneewittchen.rosandroid.model.repositories.rosRepo.node.BaseData;
-
-import org.ros.internal.message.Message;
-import org.ros.node.topic.Publisher;
 
 import geometry_msgs.Twist;
 import geometry_msgs.Vector3;
 
 
 /**
- * TODO: Description
+ * GPS data which is converted into a geometry_msgs/msg/Twist message.
  *
  * @author Nico Studt
- * @version 1.0.0
+ * @version 2.0.0
  * @created on 17.03.20
- * @updated on 17.03.20
- * @modified by
+ * @updated on 12.07.2026 (ROS 2 migration)
  */
 public class GPSData extends BaseData {
 
@@ -32,13 +29,13 @@ public class GPSData extends BaseData {
     }
 
     @Override
-    public Message toRosMessage(Publisher<Message> publisher, BaseEntity widget) {
+    public Message toRosMessage(BaseEntity widget) {
         PhoneGpsEntity joyWidget = (PhoneGpsEntity) widget;
 
         float xAxisValue = joyWidget.xScaleLeft + (joyWidget.xScaleRight - joyWidget.xScaleLeft) * ((x + 1) / 2f);
         float yAxisValue = joyWidget.yScaleLeft + (joyWidget.yScaleRight - joyWidget.yScaleLeft) * ((y + 1) / 2f);
 
-        Twist message = (Twist) publisher.newMessage();
+        Twist message = new Twist();
 
         for (int i = 0; i < 2; i++) {
             String[] splitMapping = (i == 0 ? joyWidget.xAxisMapping : joyWidget.yAxisMapping).split("/");

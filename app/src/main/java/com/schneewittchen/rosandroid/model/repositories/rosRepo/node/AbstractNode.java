@@ -1,55 +1,45 @@
 package com.schneewittchen.rosandroid.model.repositories.rosRepo.node;
 
-import android.util.Log;
-
 import com.schneewittchen.rosandroid.model.entities.widgets.BaseEntity;
+import com.schneewittchen.rosandroid.model.repositories.rosRepo.connection.RosbridgeClient;
 import com.schneewittchen.rosandroid.model.repositories.rosRepo.message.RosData;
 import com.schneewittchen.rosandroid.model.repositories.rosRepo.message.Topic;
 
-import org.ros.namespace.GraphName;
-import org.ros.node.ConnectedNode;
-import org.ros.node.Node;
-import org.ros.node.NodeMain;
-
-
 /**
- * TODO: Description
+ * Base class of the publisher and subscriber nodes. A node is bound to a
+ * topic and forwards its data over the rosbridge connection (ROS 2).
  *
  * @author Nico Studt
- * @version 1.0.0
+ * @version 2.0.0
  * @created on 15.09.20
+ * @updated on 12.07.2026 (ROS 2 migration)
  */
-public class AbstractNode implements NodeMain {
+public abstract class AbstractNode {
 
     public static final String TAG = AbstractNode.class.getSimpleName();
 
     protected Topic topic;
     protected BaseEntity widget;
     protected RosData lastRosData;
+    protected RosbridgeClient client;
 
-    @Override
-    public void onStart(ConnectedNode parentNode) {
-        Log.i(TAG, "On Start:  " + topic.name);
+
+    /**
+     * Called as soon as a rosbridge connection is available. Implementations
+     * have to register themselves (advertise/subscribe) on the given client.
+     *
+     * @param client Connected rosbridge client
+     */
+    public void onConnected(RosbridgeClient client) {
+        this.client = client;
     }
 
-    @Override
-    public void onShutdown(Node node) {
-        Log.i(TAG, "On Shutdown:  " + topic.name);
-    }
-
-    @Override
-    public void onShutdownComplete(Node node) {
-        Log.i(TAG, "On Shutdown Complete: " + topic.name);
-    }
-
-    @Override
-    public void onError(Node node, Throwable throwable) {
-        throwable.printStackTrace();
-    }
-
-    @Override
-    public GraphName getDefaultNodeName() {
-        return GraphName.of(topic.name);
+    /**
+     * Called when the node gets unregistered or the connection is lost.
+     * Implementations have to clean up (unadvertise/unsubscribe).
+     */
+    public void onDisconnected() {
+        this.client = null;
     }
 
 
@@ -61,6 +51,10 @@ public class AbstractNode implements NodeMain {
         this.topic = topic;
     }
 
+    public BaseEntity getWidget() {
+        return this.widget;
+    }
+
     public void setWidget(BaseEntity widget) {
         this.widget = widget;
         this.setTopic(widget.topic);
@@ -69,5 +63,4 @@ public class AbstractNode implements NodeMain {
     public RosData getLastRosData() {
         return lastRosData;
     }
-
 }

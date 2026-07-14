@@ -2,27 +2,22 @@ package com.schneewittchen.rosandroid.widgets.camera;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.os.Build;
 import android.util.Log;
 
 import com.schneewittchen.rosandroid.model.repositories.rosRepo.node.BaseData;
-
-import org.jboss.netty.buffer.ChannelBuffer;
 
 import sensor_msgs.CompressedImage;
 import sensor_msgs.Image;
 
 
 /**
- * TODO: Description
+ * Converts ROS 2 image messages into bitmaps. The pixel data arrives as a
+ * plain byte array (base64 decoded from the rosbridge JSON).
  *
  * @author Nils Rottmann
- * @version 1.0.1
+ * @version 2.0.0
  * @created on 27.04.2020
- * @updated on 13.05.2020
- * @modified by Nico Studt
- * @updated on 10.09.2020
- * @modified by Nico Studt
+ * @updated on 12.07.2026 (ROS 2 migration)
  */
 
 public class CameraData extends BaseData {
@@ -42,18 +37,23 @@ public class CameraData extends BaseData {
 
 
     private Bitmap convert(CompressedImage image) {
-        ChannelBuffer buffer = image.getData();
-        return BitmapFactory.decodeByteArray(buffer.array(), buffer.arrayOffset(), buffer.readableBytes());
+        byte[] data = image.getData();
+        return BitmapFactory.decodeByteArray(data, 0, data.length);
     }
 
     private Bitmap convert(Image image) {
         Bitmap.Config config = null;
 
         // Get the data
-        byte[] data = image.getData().array();
+        byte[] data = image.getData();
         int height = image.getHeight();
         int width = image.getWidth();
         int step = image.getStep();
+
+        if (data.length < height * step || width == 0 || height == 0) {
+            Log.i(TAG, "Invalid image data size");
+            return null;
+        }
 
         // Get the starting point of the data
         int dataStart = data.length - (height * step);
@@ -61,16 +61,13 @@ public class CameraData extends BaseData {
 
         // Encode Byte and transform to image
         int iStep, iWidth, dataStep, iColor;
-        long lColor;
 
         // Storage capacities
         int[] intArray = new int[height * width];
-        long[] longArray = new long[height * width];
         int iR, iG, iB, iA, iM;
-        long lR, lG, lB, lA, lM;
 
         // Init data extraction steps
-        int monoX0, monoX1, rx0, rx1, gx0, gx1, bx0, bx1, ax0, ax1;
+        int monoX0, monoX1;
 
         switch (image.getEncoding()) {
             case "rgb8":
@@ -172,175 +169,8 @@ public class CameraData extends BaseData {
                 config = Bitmap.Config.ARGB_8888;
                 break;
 
-            case "rgb16":
-                lA = 65535;
-
-                if (image.getIsBigendian() == 0) {
-                    rx0 = 0;
-                    rx1 = 1;
-                    gx0 = 2;
-                    gx1 = 3;
-                    bx0 = 4;
-                    bx1 = 5;
-                } else {
-                    rx0 = 1;
-                    rx1 = 0;
-                    gx0 = 3;
-                    gx1 = 2;
-                    bx0 = 5;
-                    bx1 = 4;
-                }
-
-                for (int i = 0; i < height; i++) {
-                    iStep = i * step;
-                    iWidth = i * width;
-
-                    for (int j = 0; j < width; j++) {
-                        dataStep = dataStart + iStep + j * pixelBytesNum;
-                        lR = data[dataStep + rx0] | data[dataStep + rx1] << 8;
-                        lG = data[dataStep + gx0] | data[dataStep + gx1] << 8;
-                        lB = data[dataStep + bx0] | data[dataStep + bx1] << 8;
-
-                        lColor = ((lR & 0xffff) << 48 | (lG & 0xffff) << 32 | (lB & 0xffff) << 16 | (lA & 0xffff));
-                        longArray[iWidth + j] = lColor;
-                    }
-                }
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    config = Bitmap.Config.RGBA_F16;
-                }
-
-                break;
-
-            case "rgba16":
-                if (image.getIsBigendian() == 0) {
-                    rx0 = 0;
-                    rx1 = 1;
-                    gx0 = 2;
-                    gx1 = 3;
-                    bx0 = 4;
-                    bx1 = 5;
-                    ax0 = 6;
-                    ax1 = 7;
-                } else {
-                    rx0 = 1;
-                    rx1 = 0;
-                    gx0 = 3;
-                    gx1 = 2;
-                    bx0 = 5;
-                    bx1 = 4;
-                    ax0 = 7;
-                    ax1 = 6;
-                }
-
-                for (int i = 0; i < height; i++) {
-                    iStep = i * step;
-                    iWidth = i * width;
-
-                    for (int j = 0; j < width; j++) {
-                        dataStep = dataStart + iStep + j * pixelBytesNum;
-                        long R = data[dataStep + rx0] | data[dataStep + rx1] << 8;
-                        long G = data[dataStep + gx0] | data[dataStep + gx1] << 8;
-                        long B = data[dataStep + bx0] | data[dataStep + bx1] << 8;
-                        long A = data[dataStep + ax0] | data[dataStep + ax1] << 8;
-
-                        lColor = ((R & 0xffff) << 48 | (G & 0xffff) << 32 | (B & 0xffff) << 16 | (A & 0xffff));
-                        longArray[iWidth + j] = lColor;
-                    }
-                }
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    config = Bitmap.Config.RGBA_F16;
-                }
-
-                break;
-
-            case "bgr16":
-                lA = 65535;
-
-                if (image.getIsBigendian() == 0) {
-                    bx0 = 0;
-                    bx1 = 1;
-                    gx0 = 2;
-                    gx1 = 3;
-                    rx0 = 4;
-                    rx1 = 5;
-                } else {
-                    bx0 = 1;
-                    bx1 = 0;
-                    gx0 = 3;
-                    gx1 = 2;
-                    rx0 = 5;
-                    rx1 = 4;
-                }
-
-                for (int i = 0; i < height; i++) {
-                    iStep = i * step;
-                    iWidth = i * width;
-
-                    for (int j = 0; j < width; j++) {
-                        dataStep = dataStart + iStep + j * pixelBytesNum;
-
-                        lB = data[dataStep + bx0] | data[dataStep + bx1] << 8;
-                        lG = data[dataStep + gx0] | data[dataStep + gx1] << 8;
-                        lR = data[dataStep + rx0] | data[dataStep + rx1] << 8;
-
-                        lColor = ((lR & 0xffff) << 48 | (lG & 0xffff) << 32 | (lB & 0xffff) << 16 | (lA & 0xffff));
-                        longArray[iWidth + j] = lColor;
-                    }
-                }
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    config = Bitmap.Config.RGBA_F16;
-                }
-
-                break;
-
-            case "bgra16":
-                if (image.getIsBigendian() == 0) {
-                    bx0 = 0;
-                    bx1 = 1;
-                    gx0 = 2;
-                    gx1 = 3;
-                    rx0 = 4;
-                    rx1 = 5;
-                    ax0 = 6;
-                    ax1 = 7;
-                } else {
-                    bx0 = 1;
-                    bx1 = 0;
-                    gx0 = 3;
-                    gx1 = 2;
-                    rx0 = 5;
-                    rx1 = 4;
-                    ax0 = 7;
-                    ax1 = 6;
-                }
-
-                for (int i = 0; i < height; i++) {
-                    iStep = i * step;
-                    iWidth = i * width;
-
-                    for (int j = 0; j < width; j++) {
-                        dataStep = dataStart + iStep + j * pixelBytesNum;
-                        lB = data[dataStep + bx0] | data[dataStep + bx1] << 8;
-                        lG = data[dataStep + gx0] | data[dataStep + gx1] << 8;
-                        lR = data[dataStep + rx0] | data[dataStep + rx1] << 8;
-                        lA = data[dataStep + ax0] | data[dataStep + ax1] << 8;
-
-                        lColor = ((lR & 0xffff) << 48 | (lG & 0xffff) << 32 | (lB & 0xffff) << 16 | (lA & 0xffff));
-                        longArray[iWidth + j] = lColor;
-                    }
-                }
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    config = Bitmap.Config.RGBA_F16;
-                }
-
-                break;
-
             case "mono16":
-                long A = 65535;
+                iA = 255;
 
                 if (image.getIsBigendian() == 0) {
                     monoX0 = 0;
@@ -356,21 +186,52 @@ public class CameraData extends BaseData {
 
                     for (int j = 0; j < width; j++) {
                         dataStep = dataStart + iStep + j * pixelBytesNum;
-                        lM = data[dataStep + monoX0] | data[dataStep + monoX1] << 8;
+                        int m = ((data[dataStep + monoX1] & 0xff) << 8 | (data[dataStep + monoX0] & 0xff)) >> 8;
 
-                        lColor = ((lM & 0xffff) << 48 | (lM & 0xffff) << 32 | (lM & 0xffff) << 16 | (A & 0xffff));
-                        longArray[iWidth + j] = lColor;
+                        iColor = ((iA & 0xff) << 24 | (m & 0xff) << 16 | (m & 0xff) << 8 | (m & 0xff));
+                        intArray[iWidth + j] = iColor;
                     }
                 }
 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    config = Bitmap.Config.RGBA_F16;
+                config = Bitmap.Config.ARGB_8888;
+                break;
+
+            case "rgb16":
+            case "rgba16":
+            case "bgr16":
+            case "bgra16":
+                // 16 bit color channels are down converted to 8 bit.
+                boolean isBgr = image.getEncoding().startsWith("bgr");
+                boolean hasAlpha = image.getEncoding().contains("a");
+                int channelCount = hasAlpha ? 4 : 3;
+                int lowByte = image.getIsBigendian() == 0 ? 1 : 0;
+
+                for (int i = 0; i < height; i++) {
+                    iStep = i * step;
+                    iWidth = i * width;
+
+                    for (int j = 0; j < width; j++) {
+                        dataStep = dataStart + iStep + j * pixelBytesNum;
+
+                        int c0 = data[dataStep + lowByte] & 0xff;
+                        int c1 = data[dataStep + 2 + lowByte] & 0xff;
+                        int c2 = data[dataStep + 4 + lowByte] & 0xff;
+                        iA = hasAlpha ? data[dataStep + 6 + lowByte] & 0xff : 255;
+
+                        iR = isBgr ? c2 : c0;
+                        iG = c1;
+                        iB = isBgr ? c0 : c2;
+
+                        iColor = ((iA & 0xff) << 24 | (iR & 0xff) << 16 | (iG & 0xff) << 8 | (iB & 0xff));
+                        intArray[iWidth + j] = iColor;
+                    }
                 }
 
+                config = Bitmap.Config.ARGB_8888;
                 break;
 
             default:
-                Log.i(TAG, "No compatible encoding!");
+                Log.i(TAG, "No compatible encoding: " + image.getEncoding());
         }
 
         // Create the bitmap if config is set and image is creatable

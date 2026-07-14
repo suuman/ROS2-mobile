@@ -1,6 +1,6 @@
 package com.schneewittchen.rosandroid.ui.views.widgets;
 
-import org.ros.internal.message.Message;
+import com.schneewittchen.rosandroid.model.repositories.rosRepo.message.Message;
 
 
 /**

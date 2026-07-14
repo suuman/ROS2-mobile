@@ -3,19 +3,10 @@ pluginManagement {
         gradlePluginPortal()
         google()
         mavenCentral()
-        maven {
-            url 'https://repo1.maven.org/maven2'
-        }
-        maven {
-            url "https://github.com/rosjava/rosjava_mvn_repo/raw/master"
-        }
-        maven {
-            url "https://repository.springsource.com/maven/bundles/release"
-        }
-        maven {
-            url "https://repository.springsource.com/maven/bundles/external"
-        }
     }
+}
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.10.0'
 }
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
@@ -23,16 +14,7 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven {
-            url 'https://repo1.maven.org/maven2'
-        }
-        maven {
-            url "https://github.com/rosjava/rosjava_mvn_repo/raw/master"
-        }
-        maven {
-            url "https://repository.springsource.com/maven/bundles/release"
-        }
-        maven {
-            url "https://repository.springsource.com/maven/bundles/external"
+            url "https://jitpack.io"
         }
     }
 }

@@ -1,15 +1,15 @@
 package com.schneewittchen.rosandroid.model.repositories.rosRepo;
 
-import android.content.ComponentName;
 import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
-import android.os.IBinder;
+import android.net.wifi.WifiManager;
+import android.os.PowerManager;
 import android.util.Log;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import com.schneewittchen.rosandroid.model.entities.MasterEntity;
 import com.schneewittchen.rosandroid.model.entities.widgets.BaseEntity;
 import com.schneewittchen.rosandroid.model.entities.widgets.GroupEntity;
@@ -19,25 +19,17 @@ import com.schneewittchen.rosandroid.model.entities.widgets.ISubscriberEntity;
 import com.schneewittchen.rosandroid.model.repositories.rosRepo.connection.ConnectionCheckTask;
 import com.schneewittchen.rosandroid.model.repositories.rosRepo.connection.ConnectionListener;
 import com.schneewittchen.rosandroid.model.repositories.rosRepo.connection.ConnectionType;
+import com.schneewittchen.rosandroid.model.repositories.rosRepo.connection.RosbridgeClient;
 import com.schneewittchen.rosandroid.model.repositories.rosRepo.message.RosData;
 import com.schneewittchen.rosandroid.model.repositories.rosRepo.message.Topic;
 import com.schneewittchen.rosandroid.model.repositories.rosRepo.node.AbstractNode;
 import com.schneewittchen.rosandroid.model.repositories.rosRepo.node.BaseData;
-import com.schneewittchen.rosandroid.model.repositories.rosRepo.node.NodeMainExecutorService;
-import com.schneewittchen.rosandroid.model.repositories.rosRepo.node.NodeMainExecutorServiceListener;
 import com.schneewittchen.rosandroid.model.repositories.rosRepo.node.PubNode;
 import com.schneewittchen.rosandroid.model.repositories.rosRepo.node.SubNode;
 
-import org.ros.address.InetAddressFactory;
-import org.ros.internal.node.client.MasterClient;
-import org.ros.internal.node.response.Response;
-import org.ros.master.client.TopicType;
-import org.ros.namespace.GraphName;
-import org.ros.node.NodeConfiguration;
 import org.ros.rosjava_geometry.FrameTransformTree;
 
 import java.lang.ref.WeakReference;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -47,20 +39,15 @@ import tf2_msgs.TFMessage;
 
 
 /**
- * The ROS repository is responsible for connecting to the ROS master
- * and creating nodes depending on the respective widgets.
+ * The ROS repository is responsible for connecting to a ROS 2 system via the
+ * rosbridge protocol and for creating nodes depending on the respective
+ * widgets. On the robot side a rosbridge server has to be running, e.g.:
+ * ros2 launch rosbridge_server rosbridge_websocket_launch.xml
  *
  * @author Nico Studt
- * @version 1.1.3
+ * @version 2.0.0
  * @created on 16.01.20
- * @updated on 20.05.20
- * @modified by Nico Studt
- * @updated on 24.09.20
- * @modified by Nico Studt
- * @updated on 16.11.2020
- * @modified by Nils Rottmann
- * @updated on 10.03.2021
- * @modified by Nico Studt
+ * @updated on 12.07.2026 (migration from rosjava/ROS 1 to rosbridge/ROS 2)
  */
 public class RosRepository implements SubNode.NodeListener {
 
@@ -74,8 +61,9 @@ public class RosRepository implements SubNode.NodeListener {
     private final MutableLiveData<RosData> receivedData;
     private final FrameTransformTree frameTransformTree;
     private MasterEntity master;
-    private NodeMainExecutorService nodeMainExecutorService;
-    private NodeConfiguration nodeConfiguration;
+    private RosbridgeClient client;
+    private WifiManager.WifiLock wifiLock;
+    private PowerManager.WakeLock wakeLock;
 
     /**
      * Default private constructor. Initialize empty lists and maps of intern widgets and nodes.
@@ -150,25 +138,35 @@ public class RosRepository implements SubNode.NodeListener {
     }
 
     /**
-     * Connect all registered nodes and establish a connection to the ROS master with
-     * the connection details given by the already delivered master entity.
+     * Connect all registered nodes and establish a connection to the
+     * rosbridge server with the connection details given by the already
+     * delivered master entity.
      */
     public void connectToMaster() {
-        Log.i(TAG, "Connect to Master");
+        Log.i(TAG, "Connect to rosbridge server");
 
         ConnectionType connectionType = rosConnected.getValue();
         if (connectionType == ConnectionType.CONNECTED || connectionType == ConnectionType.PENDING) {
             return;
         }
 
+        if (master == null) {
+            rosConnected.setValue(ConnectionType.FAILED);
+            return;
+        }
+
         rosConnected.setValue(ConnectionType.PENDING);
 
-        // Check connection
+        // Check reachability of the host before opening the websocket
         new ConnectionCheckTask(new ConnectionListener() {
 
             @Override
             public void onSuccess() {
-                bindService();
+                ClientCallbacks callbacks = new ClientCallbacks();
+                RosbridgeClient newClient = new RosbridgeClient(callbacks);
+                callbacks.owner = newClient;
+                client = newClient;
+                newClient.connect(getMasterURI());
             }
 
             @Override
@@ -179,21 +177,25 @@ public class RosRepository implements SubNode.NodeListener {
     }
 
     /**
-     * Disconnect all running nodes and cut the connection to the ROS master.
+     * Disconnect all running nodes and cut the connection to the rosbridge server.
      */
     public void disconnectFromMaster() {
-        Log.i(TAG, "Disconnect from Master");
-        if (nodeMainExecutorService == null) {
+        Log.i(TAG, "Disconnect from rosbridge server");
+        if (client == null) {
             return;
         }
 
         this.unregisterAllNodes();
-        nodeMainExecutorService.shutdown();
+        client.disconnect();
+        // Detach the client so late callbacks of the closing socket are ignored.
+        client = null;
+        releaseLocks();
+        rosConnected.postValue(ConnectionType.DISCONNECTED);
     }
 
 
     /**
-     * Change the connection details to the ROS master like the IP or port.
+     * Change the connection details to the rosbridge server like the IP or port.
      *
      * @param master Master data
      */
@@ -206,15 +208,15 @@ public class RosRepository implements SubNode.NodeListener {
         }
 
         this.master = master;
-
-        // nodeConfiguration = NodeConfiguration.newPublic(master.deviceIp, getMasterURI());
     }
 
     /**
-     * Set the master device IP in the Nodeconfiguration
+     * Set the device IP. Only kept for compatibility with the master UI:
+     * with rosbridge the device does not have to expose its own IP to the
+     * ROS network anymore (no XML-RPC callbacks like in ROS 1).
      */
     public void setMasterDeviceIp(String deviceIp) {
-        nodeConfiguration = NodeConfiguration.newPublic(deviceIp, getMasterURI());
+        // Not required for the rosbridge (ROS 2) connection.
     }
 
 
@@ -235,10 +237,6 @@ public class RosRepository implements SubNode.NodeListener {
             } else {
                 newEntities.add(baseEntity);
             }
-        }
-
-        for (BaseEntity baseEntity : newEntities) {
-            Log.i(TAG, "Entity: " + baseEntity.name);
         }
 
         // Compare old and new widget lists
@@ -289,22 +287,113 @@ public class RosRepository implements SubNode.NodeListener {
     }
 
 
-    private void bindService() {
+    // RosbridgeClient callbacks ----------------------------------------------
+
+    /**
+     * Client listener bound to a specific {@link RosbridgeClient} instance.
+     * Callbacks of a client that is no longer the active one (e.g. a late
+     * close event of an old socket after a reconnect) are ignored, so they
+     * cannot overwrite the state of a newer connection.
+     */
+    private final class ClientCallbacks implements RosbridgeClient.ClientListener {
+
+        RosbridgeClient owner;
+
+        private boolean isStale() {
+            return owner != client;
+        }
+
+        @Override
+        public void onConnected() {
+            if (isStale()) return;
+
+            acquireLocks();
+            rosConnected.postValue(ConnectionType.CONNECTED);
+            registerAllNodes();
+        }
+
+        @Override
+        public void onDisconnected() {
+            if (isStale()) return;
+
+            unregisterAllNodes();
+            client = null;
+            releaseLocks();
+            rosConnected.postValue(ConnectionType.DISCONNECTED);
+        }
+
+        @Override
+        public void onConnectionFailed() {
+            if (isStale()) return;
+
+            unregisterAllNodes();
+            client = null;
+            releaseLocks();
+            rosConnected.postValue(ConnectionType.FAILED);
+        }
+
+        @Override
+        public void onNewMessage(String topicName, JsonObject message) {
+            if (isStale()) return;
+
+            synchronized (currentNodes) {
+                for (AbstractNode node : currentNodes.values()) {
+                    if (node instanceof SubNode && node.getTopic() != null
+                            && topicName.equals(node.getTopic().name)) {
+                        ((SubNode) node).onNewMessage(message);
+                    }
+                }
+            }
+        }
+    }
+
+
+    /**
+     * Keep wifi and cpu active while a connection is running, like the
+     * former ROS 1 node service did. Otherwise the connection is dropped by
+     * the wifi power save mode as soon as the screen turns off.
+     */
+    private void acquireLocks() {
         Context context = contextReference.get();
         if (context == null) {
             return;
         }
 
-        RosServiceConnection serviceConnection = new RosServiceConnection(getMasterURI());
+        try {
+            if (wakeLock == null) {
+                PowerManager powerManager =
+                        (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+                wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
+                        "ROS-Mobile:RosConnection");
+            }
+            if (!wakeLock.isHeld()) {
+                wakeLock.acquire();
+            }
 
-        // Create service intent
-        Intent serviceIntent = new Intent(context, NodeMainExecutorService.class);
-        serviceIntent.setAction(NodeMainExecutorService.ACTION_START);
+            if (wifiLock == null) {
+                WifiManager wifiManager = (WifiManager) context.getApplicationContext()
+                        .getSystemService(Context.WIFI_SERVICE);
+                wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF,
+                        "ROS-Mobile:RosConnection");
+            }
+            if (!wifiLock.isHeld()) {
+                wifiLock.acquire();
+            }
 
-        // Start service and check state
-        context.startService(serviceIntent);
-        context.bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to acquire wifi/wake lock", e);
+        }
     }
+
+    private void releaseLocks() {
+        if (wakeLock != null && wakeLock.isHeld()) {
+            wakeLock.release();
+        }
+        if (wifiLock != null && wifiLock.isHeld()) {
+            wifiLock.release();
+        }
+    }
+
 
     /**
      * Create a node for a specific widget entity.
@@ -331,7 +420,9 @@ public class RosRepository implements SubNode.NodeListener {
 
         // Set node topic, add to node list and register it
         node.setWidget(widget);
-        currentNodes.put(node.getTopic(), node);
+        synchronized (currentNodes) {
+            currentNodes.put(node.getTopic(), node);
+        }
         this.registerNode(node);
 
         return node;
@@ -372,28 +463,31 @@ public class RosRepository implements SubNode.NodeListener {
         if (widget instanceof ISilentEntity) return;
         Log.i(TAG, "Remove Node: " + widget.name);
 
-        AbstractNode node = this.currentNodes.remove(widget.topic);
+        AbstractNode node;
+        synchronized (currentNodes) {
+            node = this.currentNodes.remove(widget.topic);
+        }
         this.unregisterNode(node);
     }
 
     /**
-     * Connect the node to ROS node graph if a connection to the ROS master is running.
+     * Connect the node to the ROS graph if a rosbridge connection is running.
      *
      * @param node Node to connect
      */
     private void registerNode(AbstractNode node) {
         Log.i(TAG, "Register Node: " + node.getTopic().name);
 
-        if (rosConnected.getValue() != ConnectionType.CONNECTED) {
-            Log.w(TAG, "Not connected with master");
+        if (client == null || !client.isConnected()) {
+            Log.w(TAG, "Not connected to a rosbridge server");
             return;
         }
 
-        nodeMainExecutorService.execute(node, nodeConfiguration);
+        node.onConnected(client);
     }
 
     /**
-     * Disconnect the node from ROS node graph if a connection to the ROS master is running.
+     * Disconnect the node from the ROS graph.
      *
      * @param node Node to disconnect
      */
@@ -402,46 +496,27 @@ public class RosRepository implements SubNode.NodeListener {
 
         Log.i(TAG, "Unregister Node: " + node.getTopic().name);
 
-        if (rosConnected.getValue() != ConnectionType.CONNECTED) {
-            Log.w(TAG, "Not connected with master");
-            return;
-        }
-
-        nodeMainExecutorService.shutdownNodeMain(node);
-    }
-
-    /**
-     * Result of a change in the internal data of a node header. Therefore it has to be
-     * unregistered from the service and reregistered due to the implementation of ROS.
-     *
-     * @param node Node main to be reregistered
-     */
-    private void reregisterNode(AbstractNode node) {
-        Log.i(TAG, "Reregister Node");
-
-        unregisterNode(node);
-        registerNode(node);
+        node.onDisconnected();
     }
 
     private void registerAllNodes() {
-        for (AbstractNode node : currentNodes.values()) {
-            this.registerNode(node);
+        synchronized (currentNodes) {
+            for (AbstractNode node : currentNodes.values()) {
+                this.registerNode(node);
+            }
         }
     }
 
     private void unregisterAllNodes() {
-        for (AbstractNode node : currentNodes.values()) {
-            this.unregisterNode(node);
+        synchronized (currentNodes) {
+            for (AbstractNode node : currentNodes.values()) {
+                this.unregisterNode(node);
+            }
         }
     }
 
-    private URI getMasterURI() {
-        String masterString = String.format("http://%s:%s/", master.ip, master.port);
-        return URI.create(masterString);
-    }
-
-    private String getDefaultHostAddress() {
-        return InetAddressFactory.newNonLoopback().getHostAddress();
+    private String getMasterURI() {
+        return String.format("ws://%s:%s", master.ip, master.port);
     }
 
     public LiveData<RosData> getData() {
@@ -453,61 +528,36 @@ public class RosRepository implements SubNode.NodeListener {
     }
 
     /**
-     * Get a list from the ROS Master with all available topics.
+     * Get a list with all available topics from the ROS 2 system by calling
+     * the rosapi topics service. Requires the rosapi node, which is included
+     * in the default rosbridge server launch file.
      *
      * @return Topic list
      */
     public List<Topic> getTopicList() {
         ArrayList<Topic> topicList = new ArrayList<>();
-        if (nodeMainExecutorService == null || nodeConfiguration == null) {
+        if (client == null || !client.isConnected()) {
             return topicList;
         }
 
-        MasterClient masterClient = new MasterClient(nodeMainExecutorService.getMasterUri());
-        GraphName graphName = GraphName.newAnonymous();
-        Response<List<TopicType>> responseList = masterClient.getTopicTypes(graphName);
+        JsonObject values = client.callServiceBlocking("/rosapi/topics", null);
+        if (values == null) {
+            return topicList;
+        }
 
-        for (TopicType result : responseList.getResult()) {
-            String name = result.getName();
-            String type = result.getMessageType();
+        JsonArray topics = values.getAsJsonArray("topics");
+        JsonArray types = values.getAsJsonArray("types");
+        if (topics == null) {
+            return topicList;
+        }
 
-            Topic rosTopic = new Topic(name, type);
-            topicList.add(rosTopic);
+        for (int i = 0; i < topics.size(); i++) {
+            String name = topics.get(i).getAsString();
+            String type = (types != null && i < types.size()) ? types.get(i).getAsString() : "";
+
+            topicList.add(new Topic(name, type));
         }
 
         return topicList;
-    }
-
-
-    private final class RosServiceConnection implements ServiceConnection {
-
-        NodeMainExecutorServiceListener serviceListener;
-        URI customMasterUri;
-
-
-        RosServiceConnection(URI customUri) {
-            customMasterUri = customUri;
-        }
-
-
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder binder) {
-            nodeMainExecutorService = ((NodeMainExecutorService.LocalBinder) binder).getService();
-            nodeMainExecutorService.setMasterUri(customMasterUri);
-            nodeMainExecutorService.setRosHostname(getDefaultHostAddress());
-
-            serviceListener = nodeMainExecutorService ->
-                    rosConnected.postValue(ConnectionType.DISCONNECTED);
-
-            nodeMainExecutorService.addListener(serviceListener);
-            rosConnected.setValue(ConnectionType.CONNECTED);
-
-            registerAllNodes();
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            nodeMainExecutorService.removeListener(serviceListener);
-        }
     }
 }

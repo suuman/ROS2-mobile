@@ -12,9 +12,9 @@ import android.util.AttributeSet;
 
 import com.schneewittchen.rosandroid.ui.views.widgets.SubscriberWidgetView;
 
-import org.ros.internal.message.Message;
+import com.schneewittchen.rosandroid.model.repositories.rosRepo.message.Message;
 
-import javax.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 
 /**

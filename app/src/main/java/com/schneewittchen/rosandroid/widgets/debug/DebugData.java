@@ -1,100 +1,115 @@
 package com.schneewittchen.rosandroid.widgets.debug;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.schneewittchen.rosandroid.model.repositories.rosRepo.message.Message;
 import com.schneewittchen.rosandroid.model.repositories.rosRepo.node.BaseData;
 
-import org.apache.commons.lang.StringUtils;
-import org.ros.internal.message.Message;
-import org.ros.internal.message.field.Field;
-import org.ros.internal.message.field.ListField;
-
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 
 /**
- * TODO: Description
+ * Converts an arbitrary received ROS 2 message into a human readable,
+ * YAML-like string by traversing its raw rosbridge JSON representation.
  *
  * @author Nils Rottmann
- * @version 1.0.0
+ * @version 2.0.0
  * @created on 17.08.2020
- * @updated on 07.09.2020
- * @modified by Nico Studt
+ * @updated on 12.07.2026 (ROS 2 migration, JSON based introspection)
  */
 public class DebugData extends BaseData {
 
     public static final String TAG = DebugData.class.getSimpleName();
+
+    /**
+     * Maximum number of displayed elements of primitive arrays
+     * (e.g. laser scan ranges or map data).
+     */
+    private static final int MAX_ARRAY_ELEMENTS = 32;
+
     private final ArrayList<String> content;
     public String value;
 
 
     public DebugData(Message message) {
         content = new ArrayList<>();
-        msgToString(message, 0);
+
+        JsonObject json = message.getRawJson();
+        if (json != null) {
+            jsonToString(json, 0);
+        }
 
         content.add("---------");
         value = joinContent("\n", content);
     }
 
 
-    private void msgToString(Message message, int level) {
-        List<Field> fields = message.toRawMessage().getFields();
-
-        for (Field field : fields) {
-            fieldToString(field, level);
+    private void jsonToString(JsonObject json, int level) {
+        for (Map.Entry<String, JsonElement> entry : json.entrySet()) {
+            elementToString(entry.getKey(), entry.getValue(), level);
         }
     }
 
-    private void fieldToString(Field field, int level) {
-        String fieldString = StringUtils.repeat("\t", level) + field.getName() + ":";
-        content.add(fieldString);
+    private void elementToString(String name, JsonElement element, int level) {
+        String indent = repeat("\t", level);
 
-        Object value = field.getValue();
+        if (element.isJsonObject()) {
+            content.add(indent + name + ":");
+            jsonToString(element.getAsJsonObject(), level + 1);
 
-        if (field instanceof ListField) {
-            for (Object o : ((ListField) field).getValue()) {
-                String listPrefix = StringUtils.repeat("\t", level + 1) + "-";
-                content.add(listPrefix);
+        } else if (element.isJsonArray()) {
+            JsonArray array = element.getAsJsonArray();
 
-                if (o instanceof String) {
-                    content.add((String) o);
-                } else if (o instanceof Message) {
-                    msgToString((Message) o, level + 2);
+            if (array.size() > 0 && (array.get(0).isJsonObject() || array.get(0).isJsonArray())) {
+                content.add(indent + name + ":");
+
+                for (JsonElement arrayElement : array) {
+                    content.add(repeat("\t", level + 1) + "-");
+
+                    if (arrayElement.isJsonObject()) {
+                        jsonToString(arrayElement.getAsJsonObject(), level + 2);
+                    } else {
+                        elementToString("", arrayElement, level + 2);
+                    }
                 }
-            }
-
-        } else if (value instanceof Field) {
-            fieldToString(field, level + 1);
-
-        } else if (value instanceof Message) {
-            msgToString((Message) value, level + 1);
-
-        } else {
-            String valueStr;
-
-            if (value.getClass().isArray()) {
-                // Value is a type of list
-                int length = Array.getLength(value);
-                valueStr = "[";
-
-                for (int i = 0; i < length; i++) {
-                    if (i > 0)
-                        valueStr += ", ";
-
-                    valueStr += Array.get(value, i);
-                }
-
-                valueStr += "]";
 
             } else {
-                // Only single value
-                valueStr = String.valueOf(value);
+                content.add(indent + name + ": " + arrayToString(array));
             }
 
-            String last = content.get(content.size() - 1);
-            content.set(content.size() - 1, last + " " + valueStr);
+        } else {
+            content.add(indent + name + ": " + element.toString());
+        }
+    }
+
+    private String arrayToString(JsonArray array) {
+        StringBuilder out = new StringBuilder("[");
+
+        int n = Math.min(array.size(), MAX_ARRAY_ELEMENTS);
+        for (int i = 0; i < n; i++) {
+            if (i > 0) {
+                out.append(", ");
+            }
+            out.append(array.get(i).toString());
         }
 
+        if (array.size() > MAX_ARRAY_ELEMENTS) {
+            out.append(", ... (").append(array.size()).append(" values)");
+        }
+
+        out.append("]");
+        return out.toString();
+    }
+
+    private String repeat(String str, int times) {
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < times; i++) {
+            out.append(str);
+        }
+        return out.toString();
     }
 
     private String joinContent(String delimiter, List<String> content) {

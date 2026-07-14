@@ -8,8 +8,8 @@ import com.schneewittchen.rosandroid.ui.opengl.visualisation.Tile;
 import com.schneewittchen.rosandroid.ui.opengl.visualisation.VisualizationView;
 import com.schneewittchen.rosandroid.ui.views.widgets.SubscriberLayerView;
 
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.ros.internal.message.Message;
+import com.schneewittchen.rosandroid.model.repositories.rosRepo.message.Message;
+
 import org.ros.namespace.GraphName;
 import org.ros.rosjava_geometry.Quaternion;
 import org.ros.rosjava_geometry.Transform;
@@ -121,11 +121,9 @@ public class GridMapView extends SubscriberLayerView {
 
         int x = 0;
         int y = 0;
-        final ChannelBuffer buffer = grid.getData();
-        while (buffer.readable()) {
+        for (final byte pixel : grid.getData()) {
             final int tileIndex = (y / TextureBitmap.STRIDE) * numTilesWide + x / TextureBitmap.STRIDE;
-            final byte pixel = buffer.readByte();
-            if (pixel == -1) {
+            if (pixel < 0 || pixel > 100) {
                 tiles.get(tileIndex).writeInt(COLOR_UNKNOWN);
             } else {
                 tiles.get(tileIndex).writeInt(colorMap[pixel]);

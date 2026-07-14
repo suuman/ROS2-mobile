@@ -5,13 +5,13 @@ import androidx.room.PrimaryKey;
 
 
 /**
- * TODO: Description
+ * Connection details of the rosbridge server running on the ROS 2 system
+ * (default port of the rosbridge websocket server is 9090).
  *
  * @author Nico Studt
- * @version 1.0.1
+ * @version 2.0.0
  * @created on 30.01.20
- * @updated on 31.01.20
- * @modified by
+ * @updated on 12.07.2026 (ROS 2 migration)
  */
 @Entity(tableName = "master_table")
 public class MasterEntity {
@@ -21,5 +21,5 @@ public class MasterEntity {
 
     public long configId;
     public String ip = "192.168.0.0";
-    public int port = 11311;
+    public int port = 9090;
 }

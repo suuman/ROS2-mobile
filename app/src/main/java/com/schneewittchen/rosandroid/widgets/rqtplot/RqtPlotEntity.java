@@ -3,15 +3,14 @@ package com.schneewittchen.rosandroid.widgets.rqtplot;
 import com.schneewittchen.rosandroid.model.entities.widgets.SubscriberWidgetEntity;
 import com.schneewittchen.rosandroid.model.repositories.rosRepo.message.Topic;
 
-import org.ros.node.topic.Subscriber;
-
 
 /**
- * TODO: Description
+ * Plot widget entity. Subscribes to a topic of any message type.
  *
  * @author Nico Studt
- * @version 1.0.0
+ * @version 2.0.0
  * @created on 29.05.21
+ * @updated on 12.07.2026 (ROS 2 migration)
  */
 public class RqtPlotEntity extends SubscriberWidgetEntity {
 
@@ -20,7 +19,7 @@ public class RqtPlotEntity extends SubscriberWidgetEntity {
     public RqtPlotEntity() {
         this.width = 8;
         this.height = 6;
-        this.topic = new Topic("/plot", Subscriber.TOPIC_MESSAGE_TYPE_WILDCARD);
+        this.topic = new Topic("/plot", Topic.WILDCARD_TYPE);
         this.fieldPath = "/pos/xy";
     }
 }
