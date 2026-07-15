@@ -2,6 +2,8 @@ package com.schneewittchen.rosandroid.model.repositories.rosRepo;
 
 import android.content.Context;
 import android.net.wifi.WifiManager;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.PowerManager;
 import android.util.Log;
 
@@ -33,6 +35,9 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 
 import geometry_msgs.TransformStamped;
 import tf2_msgs.TFMessage;
@@ -60,6 +65,8 @@ public class RosRepository implements SubNode.NodeListener {
     private final MutableLiveData<ConnectionType> rosConnected;
     private final MutableLiveData<RosData> receivedData;
     private final FrameTransformTree frameTransformTree;
+    private final ExecutorService serviceCallExecutor = Executors.newSingleThreadExecutor();
+    private final Handler mainThreadHandler = new Handler(Looper.getMainLooper());
     private MasterEntity master;
     private RosbridgeClient client;
     private WifiManager.WifiLock wifiLock;
@@ -530,11 +537,20 @@ public class RosRepository implements SubNode.NodeListener {
     /**
      * Get a list with all available topics from the ROS 2 system by calling
      * the rosapi topics service. Requires the rosapi node, which is included
-     * in the default rosbridge server launch file.
+     * in the default rosbridge server launch file. The service call blocks
+     * for up to the rosbridge timeout, so it runs on a background executor
+     * and the result is delivered to the callback on the main thread.
      *
-     * @return Topic list
+     * @param callback receives the topic list (empty on error/timeout)
      */
-    public List<Topic> getTopicList() {
+    public void getTopicList(Consumer<List<Topic>> callback) {
+        serviceCallExecutor.execute(() -> {
+            List<Topic> topicList = fetchTopicList();
+            mainThreadHandler.post(() -> callback.accept(topicList));
+        });
+    }
+
+    private List<Topic> fetchTopicList() {
         ArrayList<Topic> topicList = new ArrayList<>();
         if (client == null || !client.isConnected()) {
             return topicList;

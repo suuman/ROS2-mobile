@@ -14,6 +14,7 @@ import com.schneewittchen.rosandroid.model.repositories.rosRepo.message.Topic;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 
 /**
@@ -94,8 +95,8 @@ public class DetailsViewModel extends AndroidViewModel {
         return widgetsEmpty;
     }
 
-    public List<Topic> getTopicList() {
-        return rosDomain.getTopicList();
+    public void getTopicList(Consumer<List<Topic>> callback) {
+        rosDomain.getTopicList(callback);
     }
 
     public LiveData<BaseEntity> getWidget() {

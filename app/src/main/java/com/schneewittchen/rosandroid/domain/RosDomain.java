@@ -20,6 +20,7 @@ import com.schneewittchen.rosandroid.utility.LambdaTask;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.function.Consumer;
 
 
 /**
@@ -136,8 +137,8 @@ public class RosDomain {
         return rosRepo.getRosConnectionStatus();
     }
 
-    public List<Topic> getTopicList() {
-        return rosRepo.getTopicList();
+    public void getTopicList(Consumer<List<Topic>> callback) {
+        rosRepo.getTopicList(callback);
     }
 
     public HashMap<Topic, AbstractNode> getLastRosData() {

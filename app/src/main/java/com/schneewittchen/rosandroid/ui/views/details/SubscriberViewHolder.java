@@ -70,10 +70,11 @@ class SubscriberViewHolder implements IBaseViewHolder {
         */
 
         topicNameTextView.setAdapter(topicNameAdapter);
-        topicNameTextView.setOnClickListener(clickedView -> {
-            updateTopicNameSpinner();
-            topicNameTextView.showDropDown();
-        });
+        topicNameTextView.setOnClickListener(clickedView ->
+                viewModel.getTopicList(topics -> {
+                    updateTopicNameSpinner(topics);
+                    topicNameTextView.showDropDown();
+                }));
 
         topicNameInputLayout.setEndIconOnClickListener(v -> {
             topicNameTextView.requestFocus();
@@ -113,11 +114,11 @@ class SubscriberViewHolder implements IBaseViewHolder {
         parentViewHolder.forceWidgetUpdate();
     }
 
-    private void updateTopicNameSpinner() {
+    private void updateTopicNameSpinner(List<Topic> topics) {
         // Get the list with all suitable topics
         topicNameItemList = new ArrayList<>();
 
-        availableTopics = viewModel.getTopicList();
+        availableTopics = topics;
 
         for (Topic rosTopic : availableTopics) {
             if (topicTypes.isEmpty()) {
