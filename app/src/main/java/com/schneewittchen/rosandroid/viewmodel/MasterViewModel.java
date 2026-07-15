@@ -37,7 +37,7 @@ public class MasterViewModel extends AndroidViewModel {
 
     private final RosDomain rosDomain;
     private final LiveData<MasterEntity> currentMaster;
-    private MutableLiveData<String> networkSSIDLiveData;
+    private final MutableLiveData<String> networkSSIDLiveData = new MutableLiveData<>();
     private long lastTimeHelpShowed;
 
 
@@ -101,10 +101,6 @@ public class MasterViewModel extends AndroidViewModel {
     }
 
     public LiveData<String> getCurrentNetworkSSID() {
-        if (networkSSIDLiveData == null) {
-            networkSSIDLiveData = new MutableLiveData<>();
-        }
-
         setWifiSSID();
 
         return networkSSIDLiveData;

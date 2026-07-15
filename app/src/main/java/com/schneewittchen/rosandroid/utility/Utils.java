@@ -344,10 +344,10 @@ public class Utils {
         if (wifiManager == null)
             return null;
 
-        WifiInfo wifiInfo;
-
-        wifiInfo = wifiManager.getConnectionInfo();
-        if (wifiInfo.getSupplicantState() == SupplicantState.COMPLETED) {
+        // getConnectionInfo() may return null on newer Android versions
+        // (e.g. Wi-Fi disabled or access restricted since API 31)
+        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+        if (wifiInfo != null && wifiInfo.getSupplicantState() == SupplicantState.COMPLETED) {
             return wifiInfo.getSSID();
         }
 

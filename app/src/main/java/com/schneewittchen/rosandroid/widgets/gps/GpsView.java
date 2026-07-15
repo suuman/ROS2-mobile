@@ -26,7 +26,6 @@ import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.CustomZoomButtonsController;
 import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.ItemizedIconOverlay;
-import org.osmdroid.views.overlay.ItemizedOverlay;
 import org.osmdroid.views.overlay.OverlayItem;
 import com.schneewittchen.rosandroid.model.repositories.rosRepo.message.Message;
 
@@ -59,6 +58,7 @@ public class GpsView extends SubscriberWidgetView {
     private final double dragSensitivity = 0.05;
     private final boolean hadLongPressed = false;
     IMapController mapController = null;
+    private ItemizedIconOverlay<OverlayItem> locationOverlay;
     // Rectangle Surrounding
     Paint paint;
     float cornerWidth;
@@ -125,6 +125,11 @@ public class GpsView extends SubscriberWidgetView {
 
         // Map controller
         mapController = map.getController();
+
+        // Location marker overlay, updated in place on every new GPS message
+        locationOverlay = new ItemizedIconOverlay<>(this.getContext(), new ArrayList<>(), null);
+        locationOverlay.addItem(new OverlayItem("Position", "Robot", locationGeoPoint));
+        map.getOverlays().add(locationOverlay);
 
         // Touch
         detector = new ScaleGestureDetector(getContext(), new ScaleListener());
@@ -194,12 +199,6 @@ public class GpsView extends SubscriberWidgetView {
         float width = getWidth();
         float height = getHeight();
 
-        // Set overlay item
-        OverlayItem overlayItem = new OverlayItem("Position", "Robot", locationGeoPoint);
-        ArrayList<OverlayItem> overlayItemArrayList = new ArrayList<>();
-        overlayItemArrayList.add(overlayItem);
-        ItemizedOverlay<OverlayItem> locationOverlay = new ItemizedIconOverlay<>(this.getContext(), overlayItemArrayList, null);
-
         // Move the map to specific location
         zoomScale = (float) Math.pow(2, scaleFactor);
 
@@ -218,11 +217,9 @@ public class GpsView extends SubscriberWidgetView {
         centerGeoPoint.setLongitude(locationGeoPoint.getLongitude() + moveLon);
         mapController.setCenter(centerGeoPoint);
         mapController.setZoom(scaleFactor);
-        map.requestLayout();
 
         // Draw the OMS
         map.layout((int) left, (int) right, (int) width, (int) height);
-        map.getOverlays().add(locationOverlay);
         map.draw(canvas);
 
         // Apply the changes
