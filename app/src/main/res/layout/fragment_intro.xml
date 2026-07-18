@@ -5,17 +5,6 @@
     android:layout_height="match_parent"
     android:background="@color/black00dp">
 
-    <com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView
-        android:id="@+id/onboarding_video_view"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="invisible"
-
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:videoId="T0HrEcO-0x0" />
-
     <androidx.viewpager.widget.ViewPager
         android:id="@+id/screen_viewpager"
         android:layout_width="0dp"
@@ -53,18 +42,6 @@
         app:tabBackground="@drawable/onboarding_indicator_selecter">
 
     </com.google.android.material.tabs.TabLayout>
-
-    <Button
-        android:id="@+id/onboarding_btn_getStarted"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:background="@drawable/onboarding_button_gradient_style"
-        android:text="Get Started"
-        android:visibility="invisible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
 
     <Button
         android:id="@+id/onboarding_btn_startConfig"

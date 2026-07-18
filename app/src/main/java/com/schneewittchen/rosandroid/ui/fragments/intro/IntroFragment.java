@@ -20,7 +20,6 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager.widget.ViewPager;
 
 import com.google.android.material.tabs.TabLayout;
-import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView;
 import com.schneewittchen.rosandroid.R;
 import com.schneewittchen.rosandroid.ui.fragments.main.MainFragment;
 import com.schneewittchen.rosandroid.viewmodel.IntroViewModel;
@@ -47,11 +46,9 @@ public class IntroFragment extends Fragment {
     IntroViewPagerAdapter introViewPagerAdapter;
     TabLayout tabIndicator;
     Button buttonNext;
-    Button buttonGetStarted;
     Animation buttonAnimation;
     Button buttonConfiguration;
     EditText editTextConfigName;
-    YouTubePlayerView videoView;
     IntroViewModel mViewModel;
     List<ScreenItem> screenItems;
     int itemPosition;
@@ -73,11 +70,9 @@ public class IntroFragment extends Fragment {
 
         // Init Views
         buttonNext = view.findViewById(R.id.onboarding_btn_next);
-        buttonGetStarted = view.findViewById(R.id.onboarding_btn_getStarted);
         buttonConfiguration = view.findViewById(R.id.onboarding_btn_startConfig);
         editTextConfigName = view.findViewById(R.id.onboarding_editText_configName);
         tabIndicator = view.findViewById(R.id.tabIndicator);
-        videoView = view.findViewById(R.id.onboarding_video_view);
         buttonAnimation = AnimationUtils.loadAnimation(view.getContext(), R.anim.onboarding_buttton_animation);
 
         // Setup the viewPager
@@ -90,27 +85,6 @@ public class IntroFragment extends Fragment {
         // Setup tablayout
         tabIndicator.setupWithViewPager(screenPager);
 
-        // tablayout add change listener
-        tabIndicator.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
-            @Override
-            public void onTabSelected(TabLayout.Tab tab) {
-                if (tab.getPosition() == screenItems.size()) {
-                    loadVideoScreen();
-                }
-            }
-
-            @Override
-            public void onTabUnselected(TabLayout.Tab tab) {
-            }
-
-            @Override
-            public void onTabReselected(TabLayout.Tab tab) {
-            }
-        });
-
-        // Set the video
-        getLifecycle().addObserver(videoView);
-
         // next button click listener
         buttonNext.setOnClickListener(v -> {
             try {
@@ -119,8 +93,6 @@ public class IntroFragment extends Fragment {
                 e.printStackTrace();
             }
         });
-        // Get started Button click listener
-        buttonGetStarted.setOnClickListener(v -> loadConfigNameScreen());
         // NameConfig Click Listener
         buttonConfiguration.setOnClickListener(v -> {
             try {
@@ -151,7 +123,7 @@ public class IntroFragment extends Fragment {
             screenPager.setCurrentItem(itemPosition);
 
         } else {
-            if (requireCheckIn) loadVideoScreen();
+            if (requireCheckIn) loadConfigNameScreen();
             else {
                 setUpdatePrefData();
                 loadMainFragment(null);
@@ -178,21 +150,12 @@ public class IntroFragment extends Fragment {
         super.onActivityCreated(savedInstanceState);
     }
 
-    // show the get started button and hide the indicator and the next button
-    private void loadVideoScreen() {
-        buttonGetStarted.setAnimation(buttonAnimation);
+    // Show the configuration name input and hide the intro pager controls
+    private void loadConfigNameScreen() {
         buttonNext.setVisibility(View.INVISIBLE);
-        buttonGetStarted.setVisibility(View.VISIBLE);
         tabIndicator.setVisibility(View.INVISIBLE);
         screenPager.setVisibility(View.INVISIBLE);
-        videoView.setVisibility(View.VISIBLE);
-    }
-
-    private void loadConfigNameScreen() {
-        buttonGetStarted.setAnimation(null);
         buttonConfiguration.setAnimation(buttonAnimation);
-        buttonGetStarted.setVisibility(View.INVISIBLE);
-        videoView.setVisibility(View.INVISIBLE);
         buttonConfiguration.setVisibility(View.VISIBLE);
         editTextConfigName.setVisibility(View.VISIBLE);
     }

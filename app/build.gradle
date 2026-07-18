@@ -61,9 +61,6 @@ dependencies {
     // Open Street Maps (e.g. for GPS)
     implementation 'org.osmdroid:osmdroid-android:6.1.20'
 
-    // Playing Youtube Videos
-    implementation 'com.pierfrancescosoffritti.androidyoutubeplayer:core:12.1.1'
-
     // Color picker
     implementation "com.github.skydoves:colorpickerview:2.3.0"
 }
